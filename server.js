@@ -19,8 +19,7 @@ app.use(bodyParser.json())
 app.set('view engine', 'ejs')
 //设置静态服务
 app.use(express.static('static'))
-var md5 = require('md5-node')
-app.use(md5)
+
 var session = require('express-session')
 app.use(session({
     secret: 'string key', //一个String类型的字符串，作为服务器端生成session的加密
@@ -37,16 +36,13 @@ var MongoClient = require('mongodb').MongoClient;
 var dbUrl = 'mongodb://127.0.0.1:27017' //数据库连接地址
 app.use((req, res, next) => {
     if(req.url=='/login' || req.url=='/doLogin'){
-        console.log(1)
         next()
 
     }else{
         if (req.session.userinfo && req.session.userinfo.username != ''){
             app.locals['userinfo'] = req.session.userinfo
-            console.log(3)
             next()
         }else{
-            console.log(4)
             res.redirect('/login')
         }
     }
@@ -54,9 +50,7 @@ app.use((req, res, next) => {
 // ejs 提供设置全局数据 所有路由均可使用
 //app.locals['userinfo'] = 'ss'
 
-
 app.get('/login', (req, res) => {
-    console.log(5)
     res.render('login', {
         
     })
@@ -90,9 +84,25 @@ app.post('/doLogin', (req, res) => {
 
 
 app.get('/product', (req, res) => {
-    res.render('product', {
-        userinfo:req.session.userinfo
+    MongoClient.connect(dbUrl,(err,client)=>{
+        if (err) {
+            console.log(err)
+            return;
+        }
+        var db = client.db('product');
+        var result = db.collection('goods').find();
+        result.toArray((err,data)=>{
+            if(err){
+                console.log(err)
+            }else{
+                res.render('product', {
+                    goods:data        
+                })
+            }
+            client.close()
+        })
     })
+    
 })
 app.get('/add', (req, res) => {
     res.render('add', {
